@@ -5,12 +5,29 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
+//const helmet = require("helmet");
+// Set up rate limiter: maximum of twenty requests per minute
+//const RateLimit = require("express-rate-limit");
 require('dotenv').config()
 const app = express();
 app.use(express.json());
+// Add helmet to the middleware chain.
+// Set CSP headers to allow our Bootstrap and Jquery to be served
+// app.use(
+//   helmet.contentSecurityPolicy({
+//     directives: {
+//       "script-src": ["'self'", "code.jquery.com", "cdn.jsdelivr.net"],
+//     },
+//   }),
+// );
+// const limiter = RateLimit({
+//   windowMs: 1 * 60 * 1000, // 1 minute
+//   max: 20,
+// });
+// Apply rate limiter to all requests
+// app.use(limiter);
 
-
-const secret = 'your_jwt_secret';
+const secret = process.env.SECRET_KEY;
 const corsOptions = {
     'origin': '*',
     'methods': 'GET,HEAD,PUT,PATCH,POST,DELETE',   
@@ -53,12 +70,13 @@ const typeDefs = gql`
 const resolvers = {
   Query: {
     me: async (_, __, { user, connection }) => {
-      console.log(user);
+      console.log('me', _, __, { user, connection });
       if (!user) throw new Error('Not authenticated');
       const [rows] = await connection.execute('SELECT * FROM users WHERE id = ?', [user.id]);
       return rows[0];
     },
     messages: async (_, { receiverId }, { connection, user }) => {
+      console.log('messages', user);
       if (!user) throw new Error('Not authenticated');
       const [rows] = await connection.execute(
         'SELECT * FROM messages WHERE receiver_id = ? AND sender_id = ?',
@@ -85,7 +103,6 @@ const resolvers = {
       return jwt.sign({ id: user.id }, secret, { expiresIn: '1h' });
     },
     sendMessage: async (_, { receiverId, content }, { connection, user }) => {
-      console.log(user);
       if (!user) throw new Error('Not authenticated');
       const [rows] = await connection.execute(
         'INSERT INTO messages (sender_id, receiver_id, content) VALUES (?, ?, ?)',
@@ -118,6 +135,7 @@ const startServer = async () => {
       const token = req.headers.authorization || '';
       try {
         const user = jwt.verify(token, secret);
+        //console.log('context', user);
         return { user, connection };
       } catch {
         return { connection };

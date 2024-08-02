@@ -103,12 +103,11 @@ function Login() {
 }
 
 function Messages() {
-  const { loading, error, data } = useQuery(ME);
+  const { loading, error } = useQuery(ME);
   const [sendMessage] = useMutation(SEND_MESSAGE);
   const [receiverId, setReceiverId] = useState('');
   const [content, setContent] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  //console.log(useQuery(ME));
 
   const handleSendMessage = async () => {
     try {
@@ -123,7 +122,7 @@ function Messages() {
   };
 
   if (loading) return <p>Loading...</p>;
-  //if (error) return <p>Error: {error.message}</p>;
+  if (error) return <p>Error: {error.message}</p>;
 
  
   return (
@@ -142,9 +141,15 @@ function Messages() {
   );
 }
 
+function Logout() {
+  // Clear token from local storage
+  localStorage.removeItem('token');
+  // Redirect or navigate to the login page or homepage
+  window.location.href = '/'; // Redirect to login page
+}
+
 function App() {
   const token = localStorage.getItem('token');
-  console.log(token);
   return (
     <ApolloProvider client={client}>
       <div>
@@ -156,7 +161,11 @@ function App() {
             <Login />
           </>
         ) : (
-          <Messages />
+          <>
+            <Messages />
+            <br />
+            <button onClick={Logout}>Logout</button>
+          </>          
         )}
       </div>
     </ApolloProvider>
